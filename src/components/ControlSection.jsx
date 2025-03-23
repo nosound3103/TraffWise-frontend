@@ -51,7 +51,8 @@ export default function Controls({ togglePanel, activePanel }) {
 
       {/* Capture Button */}
       <button className="control-btn">
-        <FaCamera /> Capture
+        <FaCamera />
+        Capture
       </button>
 
       {/* Record Button */}
