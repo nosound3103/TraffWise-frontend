@@ -1,0 +1,49 @@
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100vh;
+}
+
+.dashboard-content {
+  display: flex;
+  flex: 1;
+  height: calc(100vh - 15px);
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px;
+  transition: all 0.3s ease-in-out;
+}
+
+.main-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-grow: 1;
+  width: 100%;
+  transition: width 0.3s ease-in-out;
+}
+
+.dashboard-content.with-panel .main-section {
+  width: 65%;
+}
+
+.dashboard-content.with-panel .violation-log,
+.dashboard-content.with-panel .edit-panel {
+  width: 35%;
+}
+
+.violation-log.hidden,
+.edit-panel.hidden {
+  transform: translateX(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.camera-view {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: width 0.3s ease-in-out;
+}
