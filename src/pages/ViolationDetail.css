@@ -1,0 +1,78 @@
+.violation-detail-container {
+  max-width: 800px;
+  margin: auto;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+}
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 12px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.back-btn:hover {
+  background: #0056b3;
+}
+
+.violation-info {
+  background: #f9f9f9;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #ddd;
+}
+
+.info-row strong {
+  color: #333;
+}
+
+.status-select {
+  padding: 6px 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.status-select.pending {
+  background: #ffcccc;
+  color: red;
+}
+
+.status-select.resolved {
+  background: #ccffcc;
+  color: green;
+}
+
+.evidence-section {
+  text-align: center;
+}
+
+.evidence-img {
+  width: 100%;
+  max-width: 1400px;
+  border-radius: 8px;
+  margin-top: 10px;
+}

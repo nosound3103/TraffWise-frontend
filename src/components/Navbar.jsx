@@ -9,8 +9,8 @@ export default function Navbar() {
       <button className="nav-button" onClick={() => navigate("/")}>
         Home
       </button>
-      <button className="nav-button" onClick={() => navigate("/dashboard")}>
-        Dashboard
+      <button className="nav-button" onClick={() => navigate("/monitor/1")}>
+        Monitor
       </button>
       <button className="nav-button" onClick={() => navigate("/violations")}>
         Violations

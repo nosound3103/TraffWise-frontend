@@ -1,15 +1,24 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Homepage from "./pages/Homepage";
-import Dashboard from "./pages/Dashboard";
+import CameraMonitor from "./pages/CameraMonitor";
+import ViolationPage from "./pages/ViolationPage";
+import ViolationDetail from "./pages/ViolationDetail";
+import Test from "./components/PolygonDrawer";
+import { DataProvider } from "./contexts/DataProvider";
 
 export default function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Homepage />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-      </Routes>
-    </Router>
+    <DataProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Homepage />} />
+          <Route path="/monitor/:cameraId" element={<CameraMonitor />} />
+          <Route path="/violations" element={<ViolationPage />} />
+          <Route path="/violations/:id" element={<ViolationDetail />} />
+          <Route path="/test" element={<Test />} />
+        </Routes>
+      </Router>
+    </DataProvider>
   );
 }

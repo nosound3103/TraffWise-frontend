@@ -1,8 +1,15 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { X } from "lucide-react";
 import "./CameraCard.css";
 
 export default function CameraCard({ camera, onRemove }) {
+  const navigate = useNavigate();
+
+  const handleViewCamera = () => {
+    navigate(`/monitor/${camera.id}`);
+  };
+
   return (
     <div className="camera-card">
       {/* Remove button */}
@@ -18,7 +25,9 @@ export default function CameraCard({ camera, onRemove }) {
         </p>
 
         {camera.status === "active" ? (
-          <button className="cam-btn view-live">▶ View</button>
+          <button onClick={handleViewCamera} className="cam-btn view-live">
+            ▶ View
+          </button>
         ) : (
           <button className="cam-btn upload-video">⬆ Upload</button>
         )}

@@ -6,9 +6,7 @@ import "./Homepage.css";
 export default function Homepage() {
   return (
     <div className="homepage">
-      {/* Navbar */}
       <Header />
-      {/* Page Title */}
       <div className="page-header">
         <h1>Traffic Monitoring System</h1>
         <p>

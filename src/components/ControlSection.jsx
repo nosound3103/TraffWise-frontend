@@ -1,17 +1,30 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FaCamera, FaVideo, FaCog, FaPowerOff, FaList } from "react-icons/fa";
 import "./ControlSection.css";
+import { useNavigate } from "react-router-dom";
+import { useData } from "../contexts/DataProvider";
 
-export default function Controls({ togglePanel, activePanel }) {
+export default function ControlSection({ togglePanel, activePanel, cameraId }) {
+  const navigate = useNavigate();
   const [isOn, setIsOn] = useState(false);
+  const { cameras } = useData();
   const [selectedModel, setSelectedModel] = useState("YOLO");
-  const [selectedCamera, setSelectedCamera] = useState("Camera 1");
+  const [selectedCamera, setSelectedCamera] = useState(1);
 
   const toggleOnOff = () => setIsOn(!isOn);
 
+  useEffect(() => {
+    if (cameraId) setSelectedCamera(cameraId);
+  }, [cameraId]);
+
+  const handleCameraChange = (e) => {
+    const newCamera = e.target.value;
+    setSelectedCamera(newCamera);
+    navigate(`/monitor/${newCamera}`);
+  };
+
   return (
     <div className="control-section">
-      {/* Model Selection */}
       <select
         className="control-dropdown"
         value={selectedModel}
@@ -22,18 +35,18 @@ export default function Controls({ togglePanel, activePanel }) {
         <option value="DETR">RTDETRv2</option>
       </select>
 
-      {/* Camera Selection (Dropdown) */}
       <select
         className="control-dropdown"
         value={selectedCamera}
-        onChange={(e) => setSelectedCamera(e.target.value)}
+        onChange={handleCameraChange}
       >
-        <option value="Camera 1">Camera 1</option>
-        <option value="Camera 2">Camera 2</option>
-        <option value="Camera 3">Camera 3</option>
+        {cameras.map((cam) => (
+          <option key={cam.id} value={cam.id}>
+            {cam.name}
+          </option>
+        ))}
       </select>
 
-      {/* Power Button */}
       <button
         className={`control-btn ${isOn ? "active" : ""}`}
         onClick={toggleOnOff}
@@ -41,7 +54,6 @@ export default function Controls({ togglePanel, activePanel }) {
         <FaPowerOff /> {isOn ? "ON" : "OFF"}
       </button>
 
-      {/* Edit Button */}
       <button
         className={`control-btn ${activePanel === "edit" ? "active" : ""}`}
         onClick={() => togglePanel("edit")}
@@ -49,18 +61,15 @@ export default function Controls({ togglePanel, activePanel }) {
         <FaCog /> Edit
       </button>
 
-      {/* Capture Button */}
       <button className="control-btn">
         <FaCamera />
         Capture
       </button>
 
-      {/* Record Button */}
       <button className="control-btn">
         <FaVideo /> Record
       </button>
 
-      {/* Logs Button */}
       <button
         className={`control-btn ${activePanel === "log" ? "active" : ""}`}
         onClick={() => togglePanel("log")}
