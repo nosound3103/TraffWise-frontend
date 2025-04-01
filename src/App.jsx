@@ -4,7 +4,6 @@ import Homepage from "./pages/Homepage";
 import CameraMonitor from "./pages/CameraMonitor";
 import ViolationPage from "./pages/ViolationPage";
 import ViolationDetail from "./pages/ViolationDetail";
-import Test from "./components/PolygonDrawer";
 import { DataProvider } from "./contexts/DataProvider";
 
 export default function App() {
@@ -16,7 +15,6 @@ export default function App() {
           <Route path="/monitor/:cameraId" element={<CameraMonitor />} />
           <Route path="/violations" element={<ViolationPage />} />
           <Route path="/violations/:id" element={<ViolationDetail />} />
-          <Route path="/test" element={<Test />} />
         </Routes>
       </Router>
     </DataProvider>
