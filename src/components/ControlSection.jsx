@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { FaCamera, FaVideo, FaCog, FaPowerOff, FaList } from "react-icons/fa";
+import {
+  FaCamera,
+  FaCog,
+  FaPowerOff,
+  FaList,
+  FaPause,
+  FaPlay,
+} from "react-icons/fa";
 import "./ControlSection.css";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useData } from "../contexts/DataProvider";
@@ -7,12 +14,46 @@ import { useData } from "../contexts/DataProvider";
 export default function ControlSection({ togglePanel, activePanel, cameraId }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isOn, setIsOn] = useState(false);
+  const [isOn, setIsOn] = useState(true);
   const { cameras } = useData();
   const [selectedModel, setSelectedModel] = useState("yolo11");
   const [selectedCamera, setSelectedCamera] = useState("1");
   const [error, setError] = useState(null);
-  const toggleOnOff = () => setIsOn(!isOn);
+  const [captureStatus, setCaptureStatus] = useState(null);
+  const [isPaused, setIsPaused] = useState(false);
+
+  const toggleOnOff = async () => {
+    setError(null);
+    const newState = !isOn;
+
+    try {
+      const response = await fetch("http://localhost:8000/toggle_annotations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ show_annotations: newState }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Error toggling annotations:", errorData);
+        setError(
+          `Failed to toggle annotations: ${errorData.detail || "Unknown error"}`
+        );
+        return;
+      }
+
+      const data = await response.json();
+      setIsOn(data.show_annotations);
+      console.log(
+        `Annotations ${data.show_annotations ? "enabled" : "disabled"}`
+      );
+    } catch (err) {
+      console.error("Network error during annotation toggle:", err);
+      setError("Network error when toggling annotations");
+    }
+  };
 
   const isMonitorPage = location.pathname.includes("/monitor");
 
@@ -52,6 +93,53 @@ export default function ControlSection({ togglePanel, activePanel, cameraId }) {
       console.log("ControlSection unmounting");
     };
   }, [isMonitorPage, cameraId]);
+
+  useEffect(() => {
+    const fetchPauseState = async () => {
+      try {
+        // Use POST with no body instead of GET since the backend
+        // doesn't have a dedicated GET endpoint for pause state
+        const response = await fetch("http://localhost:8000/toggle_pause", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          // Send empty body to avoid toggling the state
+          body: JSON.stringify({}),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setIsPaused(data.paused);
+        }
+      } catch (err) {
+        console.error("Error fetching pause state:", err);
+      }
+    };
+
+    if (isMonitorPage) {
+      fetchPauseState();
+    }
+  }, [isMonitorPage, location.pathname]);
+
+  useEffect(() => {
+    const initAnnotationState = async () => {
+      if (isMonitorPage) {
+        try {
+          await fetch("http://localhost:8000/toggle_annotations", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ show_annotations: true }),
+          });
+          setIsOn(true);
+        } catch (err) {
+          console.error("Error setting initial annotation state:", err);
+        }
+      }
+    };
+
+    initAnnotationState();
+  }, [isMonitorPage]);
 
   useEffect(() => {
     if (cameraId) setSelectedCamera(String(cameraId));
@@ -112,10 +200,77 @@ export default function ControlSection({ togglePanel, activePanel, cameraId }) {
     }
   };
 
+  const handleCapture = async () => {
+    setError(null);
+    setCaptureStatus("Capturing...");
+
+    try {
+      const response = await fetch("http://localhost:8000/capture_frame", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          camera_id: selectedCamera,
+          model_type: selectedModel,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Error capturing frame:", errorData);
+        setError(
+          `Failed to capture frame: ${errorData.detail || "Unknown error"}`
+        );
+        setCaptureStatus(null);
+        return;
+      }
+
+      const data = await response.json();
+      setCaptureStatus("Captured!");
+      console.log(`Frame captured successfully: ${data.filename}`);
+
+      // Clear status after 3 seconds
+      setTimeout(() => {
+        setCaptureStatus(null);
+      }, 3000);
+    } catch (err) {
+      console.error("Network error during capture:", err);
+      setError("Network error when capturing frame");
+      setCaptureStatus(null);
+    }
+  };
+
+  const handlePlayPause = async () => {
+    setError(null);
+    try {
+      const response = await fetch("http://localhost:8000/toggle_pause", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Error toggling pause:", errorData);
+        setError(
+          `Failed to toggle pause: ${errorData.detail || "Unknown error"}`
+        );
+        return;
+      }
+
+      const data = await response.json();
+      setIsPaused(data.paused);
+      console.log(`Video ${data.paused ? "paused" : "resumed"}`);
+    } catch (err) {
+      console.error("Network error during pause toggle:", err);
+      setError("Network error when toggling pause");
+    }
+  };
+
   return (
     <div className="control-section">
-      {error && <div className="error-message">{error}</div>}
-
       <select
         className="control-dropdown"
         value={selectedModel}
@@ -149,16 +304,22 @@ export default function ControlSection({ togglePanel, activePanel, cameraId }) {
         className={`control-btn ${activePanel === "edit" ? "active" : ""}`}
         onClick={() => togglePanel("edit")}
       >
-        <FaCog /> Edit
+        <FaCog /> Settings
       </button>
 
-      <button className="control-btn">
-        <FaCamera />
-        Capture
+      <button
+        className="control-btn"
+        onClick={handleCapture}
+        disabled={captureStatus === "Capturing..."}
+      >
+        <FaCamera /> {captureStatus || "Capture"}
       </button>
 
-      <button className="control-btn">
-        <FaVideo /> Record
+      <button
+        className={`control-btn ${isPaused ? "active" : ""}`}
+        onClick={handlePlayPause}
+      >
+        {isPaused ? <FaPlay /> : <FaPause />} {isPaused ? "Resume" : "Pause"}
       </button>
 
       <button
