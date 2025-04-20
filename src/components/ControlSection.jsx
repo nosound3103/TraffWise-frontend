@@ -117,10 +117,10 @@ export default function ControlSection({ togglePanel, activePanel, cameraId }) {
       }
     };
 
-    if (isMonitorPage) {
-      fetchPauseState();
-    }
-  }, [isMonitorPage, location.pathname]);
+    // if (isMonitorPage) {
+    //   fetchPauseState();
+    // }
+  }, [location.pathname]);
 
   useEffect(() => {
     const initAnnotationState = async () => {

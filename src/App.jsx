@@ -27,11 +27,15 @@ const DEFAULT_SETTINGS = {
 
   // General Model Settings
   confidenceThreshold: 0.5,
-  nmsThreshold: 0.45,
+  iouThreshold: 0.45,
   maxAge: 15,
 };
 
 export default function App() {
+  useEffect(() => {
+    fetch("/reset", { method: "POST" });
+  }, []);
+
   // Initialize parameters on app startup
   useEffect(() => {
     const initializeParameters = async () => {

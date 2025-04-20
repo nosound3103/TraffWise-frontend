@@ -30,7 +30,7 @@ export default function CameraMonitor() {
           <CameraView />
         </div>
         {activePanel === "log" && <ViolationLog />}
-        {activePanel === "edit" && <EditPanel />}
+        {activePanel === "edit" && <EditPanel cameraId={cameraId} />}
       </div>
     </div>
   );

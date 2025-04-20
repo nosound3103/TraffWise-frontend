@@ -10,6 +10,11 @@ export function DataProvider({ children }) {
   const [cameras, setCameras] = useState([
     { id: 1, name: "Camera 1", location: "Location 1", status: "active" },
     { id: 2, name: "Camera 2", location: "Location 2", status: "active" },
+    { id: 3, name: "Camera 3", location: "Location 3", status: "active" },
+    { id: 4, name: "Camera 4", location: "Location 4", status: "active" },
+    { id: 5, name: "Camera 5", location: "Location 5", status: "active" },
+    // { id: 6, name: "Camera 6", location: "Location 6", status: "active" },
+    // { id: 7, name: "Camera 7", location: "Location 7", status: "active" },
   ]);
 
   const [violations, setViolations] = useState([]);

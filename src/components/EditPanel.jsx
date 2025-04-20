@@ -1,59 +1,167 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import "./EditPanel.css";
 
-// Define default settings as a constant outside the component
 const DEFAULT_SETTINGS = {
-  // Speed Estimation
-  speedEstimationEnabled: true,
-  speedLimit: 60,
-  overspeedBuffer: 5,
-  maxHistorySeconds: 3.0,
-
-  // Red Light Violation
-  redLightDetectionEnabled: true,
-  maxTrackRLV: 50,
-
-  // Wrong Lane Detection
-  wrongLaneDetectionEnabled: true,
-  angleThreshold: 90,
-  straightThreshold: 30,
-  dotThreshold: -0.5,
-  toleranceTime: 3,
-
-  // General Model Settings
-  confidenceThreshold: 0.5,
-  nmsThreshold: 0.45,
-  maxAge: 15,
+  general_setting: {
+    conf_threshold: 0.5,
+    iou_threshold: 0.5,
+    lane_annotate_enabled: true,
+    road_annotate_enabled: true,
+    intersection_annotate_enabled: true,
+  },
+  frame_skipper: {
+    target_fps: 60,
+    skip_rate: "auto",
+  },
+  speed_estimation: {
+    enabled: true,
+    over_speed_buffer: 1,
+    roads: {
+      intersection: { speed_limit: 30 },
+      road_1: {
+        lane_1: { speed_limit: 50 },
+        lane_2: { speed_limit: 50 },
+      },
+    },
+  },
+  red_light_violation: {
+    enabled: true,
+  },
+  wrong_way_violation: {
+    enabled: true,
+    angle_threshold: 10,
+    straight_threshold: 10,
+    dot_threshold: 0.5,
+    tolerance_time: 3,
+  },
 };
 
-export default function EditPanel() {
-  // Always initialize with default settings
+const RoadSpeedSettings = ({ roadId, roadData, enabled, onSpeedChange }) => {
+  return (
+    <div className="speed-limit-section">
+      <h4>
+        {roadId === "intersection"
+          ? "Intersection"
+          : `Road ${roadId.split("_")[1]}`}
+      </h4>
+      {roadId === "intersection" ? (
+        <div className="parameter-control">
+          <label htmlFor={`${roadId}SpeedLimit`}>Speed Limit (km/h):</label>
+          <input
+            type="number"
+            id={`${roadId}SpeedLimit`}
+            min="10"
+            max="120"
+            step="5"
+            value={roadData.speed_limit}
+            onChange={(e) =>
+              onSpeedChange(`${roadId}.speed_limit`, parseInt(e.target.value))
+            }
+            disabled={!enabled}
+          />
+        </div>
+      ) : (
+        Object.entries(roadData)
+          .filter(([key]) => key.startsWith("lane_"))
+          .map(([laneId, laneData]) => (
+            <div className="parameter-control" key={laneId}>
+              <label htmlFor={`${roadId}_${laneId}SpeedLimit`}>
+                Lane {laneId.split("_")[1]} Speed Limit (km/h):
+              </label>
+              <input
+                type="number"
+                id={`${roadId}_${laneId}SpeedLimit`}
+                min="10"
+                max="120"
+                step="5"
+                value={laneData.speed_limit}
+                onChange={(e) =>
+                  onSpeedChange(
+                    `${roadId}.${laneId}.speed_limit`,
+                    parseInt(e.target.value)
+                  )
+                }
+                disabled={!enabled}
+              />
+            </div>
+          ))
+      )}
+    </div>
+  );
+};
+
+export default function EditPanel({ cameraId }) {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
 
-  // Load settings from localStorage only once at component mount
   useEffect(() => {
-    try {
-      const savedSettings = localStorage.getItem("traffwise_settings");
-      if (savedSettings) {
-        const parsedSettings = JSON.parse(savedSettings);
-        setSettings(parsedSettings);
-        // Don't send parameters here as App.jsx already does this on startup
+    const fetchConfig = async () => {
+      try {
+        const response = await fetch(
+          `http://localhost:8000/api/camera/${cameraId}/config`
+        );
+        if (!response.ok) throw new Error("Failed to fetch config");
+        const data = await response.json();
+        setSettings(data);
+      } catch (error) {
+        console.error("Error fetching config:", error);
       }
-    } catch (error) {
-      console.error("Error loading settings from localStorage:", error);
-    }
-  }, []);
+    };
 
-  // Memoize the sendParametersToBackend function
-  const sendParametersToBackend = useCallback(async (params) => {
+    fetchConfig();
+  }, [cameraId]);
+
+  // const sendParametersToBackend = useCallback(
+  //   async (params) => {
+  //     try {
+  //       const response = await fetch("http://localhost:8000/api/parameters", {
+  //         method: "POST",
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //         },
+  //         body: JSON.stringify({ camera_id: cameraId, ...params }),
+  //       });
+
+  //       if (!response.ok) {
+  //         throw new Error("Failed to update parameters");
+  //       }
+
+  //       const data = await response.json();
+  //       console.log("Parameters updated:", data);
+  //     } catch (error) {
+  //       console.error("Error updating parameters:", error);
+  //     }
+  //   },
+  //   [cameraId]
+  // );
+
+  const setNestedValue = (obj, path, value) => {
+    const keys = path.split(".");
+    let current = obj;
+    for (let i = 0; i < keys.length - 1; i++) {
+      current = current[keys[i]];
+    }
+    current[keys[keys.length - 1]] = value;
+    return obj;
+  };
+
+  const handleInputChange = async (section, subsection, key, value) => {
     try {
-      console.log("Sending parameters from EditPanel:", params);
+      const newSettings = { ...settings };
+
+      if (subsection) {
+        newSettings[section][subsection][key] = value;
+      } else {
+        newSettings[section][key] = value;
+      }
+
+      setSettings(newSettings);
+
       const response = await fetch("http://localhost:8000/api/parameters", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(params),
+        body: JSON.stringify(newSettings),
       });
 
       if (!response.ok) {
@@ -61,41 +169,51 @@ export default function EditPanel() {
       }
 
       const data = await response.json();
-      console.log("Parameters updated:", data);
+      if (data.config) {
+        setSettings(data.config);
+      }
     } catch (error) {
-      console.error("Error updating parameters:", error);
+      console.error("Error updating settings:", error);
+      const response = await fetch(
+        `http://localhost:8000/api/camera/${cameraId}/config`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setSettings(data);
+      }
     }
-  }, []);
-
-  const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    const newValue =
-      type === "checkbox"
-        ? checked
-        : type === "number"
-        ? parseFloat(value)
-        : value;
-
-    setSettings((prev) => {
-      const newSettings = { ...prev, [name]: newValue };
-
-      // Save to localStorage
-      localStorage.setItem("traffwise_settings", JSON.stringify(newSettings));
-
-      // Update backend
-      sendParametersToBackend(newSettings);
-
-      return newSettings;
-    });
   };
 
-  const handleReset = () => {
-    // Clear from localStorage
-    localStorage.removeItem("traffwise_settings");
+  const handleReset = async () => {
+    try {
+      // Reset to defaults
+      setSettings(DEFAULT_SETTINGS);
 
-    // Reset to defaults
-    setSettings(DEFAULT_SETTINGS);
-    sendParametersToBackend(DEFAULT_SETTINGS);
+      // Send to backend
+      const response = await fetch("http://localhost:8000/api/parameters", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(DEFAULT_SETTINGS),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to reset parameters");
+      }
+
+      console.log("Settings reset to defaults");
+    } catch (error) {
+      console.error("Error resetting settings:", error);
+      // Optionally revert the UI if backend update fails
+      const response = await fetch(
+        `http://localhost:8000/api/camera/${cameraId}/config`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setSettings(data);
+      }
+    }
   };
 
   return (
@@ -103,49 +221,191 @@ export default function EditPanel() {
       <div className="sidebar-content">
         <h2 className="title">System Parameters</h2>
 
-        {/* General Model Settings */}
+        {/* General Settings */}
         <section className="section">
-          <h3 className="section-title">General Model Settings</h3>
+          <h3 className="section-title">General Settings</h3>
           <div className="parameter-control">
             <label htmlFor="confidenceThreshold">Detection Confidence:</label>
             <input
               type="number"
               id="confidenceThreshold"
-              name="confidenceThreshold"
+              name="confidence_threshold"
               min="0.1"
               max="1.0"
               step="0.05"
-              value={settings.confidenceThreshold}
-              onChange={handleInputChange}
+              value={settings.general_setting.conf_threshold}
+              onChange={(e) =>
+                handleInputChange(
+                  "general_setting",
+                  null,
+                  "conf_threshold",
+                  parseFloat(e.target.value)
+                )
+              }
             />
           </div>
 
           <div className="parameter-control">
-            <label htmlFor="nmsThreshold">NMS IoU Threshold:</label>
+            <label htmlFor="iouThreshold">NMS IoU Threshold:</label>
             <input
               type="number"
-              id="nmsThreshold"
-              name="nmsThreshold"
+              id="iouThreshold"
+              name="iou_threshold"
               min="0.1"
               max="1.0"
               step="0.05"
-              value={settings.nmsThreshold}
-              onChange={handleInputChange}
+              value={settings.general_setting.iou_threshold}
+              onChange={(e) =>
+                handleInputChange(
+                  "general_setting",
+                  null,
+                  "iou_threshold",
+                  parseFloat(e.target.value)
+                )
+              }
+            />
+          </div>
+
+          <div className="section-header">
+            <h3 className="section-title">Lane Annotation</h3>
+            <div className="toggle-container">
+              <input
+                type="checkbox"
+                id="laneAnnotationEnabled"
+                name="lane_annotation_enabled"
+                checked={settings.general_setting.lane_annotate_enabled}
+                onChange={(e) =>
+                  handleInputChange(
+                    "general_setting",
+                    null,
+                    "lane_annotate_enabled",
+                    e.target.checked
+                  )
+                }
+              />
+              <label className="toggle-label" htmlFor="laneAnnotationEnabled">
+                {settings.general_setting.lane_annotate_enabled ? "On" : "Off"}
+              </label>
+            </div>
+          </div>
+
+          <div className="section-header">
+            <h3 className="section-title">Road Annotation</h3>
+            <div className="toggle-container">
+              <input
+                type="checkbox"
+                id="roadAnnotationEnabled"
+                name="road_annotation_enabled"
+                checked={settings.general_setting.road_annotate_enabled}
+                onChange={(e) =>
+                  handleInputChange(
+                    "general_setting",
+                    null,
+                    "road_annotate_enabled",
+                    e.target.checked
+                  )
+                }
+              />
+              <label className="toggle-label" htmlFor="roadAnnotationEnabled">
+                {settings.general_setting.road_annotate_enabled ? "On" : "Off"}
+              </label>
+            </div>
+          </div>
+
+          {settings.speed_estimation.roads.intersection && (
+            <div className="section-header">
+              <h3 className="section-title">Intersection Annotation</h3>
+              <div className="toggle-container">
+                <input
+                  type="checkbox"
+                  id="intersectionAnnotationEnabled"
+                  name="intersection_annotate_enabled"
+                  checked={
+                    settings.general_setting.intersection_annotate_enabled
+                  }
+                  onChange={(e) =>
+                    handleInputChange(
+                      "general_setting",
+                      null,
+                      "intersection_annotate_enabled",
+                      e.target.checked
+                    )
+                  }
+                />
+                <label
+                  className="toggle-label"
+                  htmlFor="intersectionAnnotationEnabled"
+                >
+                  {settings.general_setting.intersection_annotate_enabled
+                    ? "On"
+                    : "Off"}
+                </label>
+              </div>
+            </div>
+          )}
+        </section>
+
+        <section className="section">
+          <h3 className="section-title">Frame Skipper</h3>
+          <div className="parameter-control">
+            <label htmlFor="targetFPS">Target FPS</label>
+            <input
+              type="number"
+              id="targetFPS"
+              name="target_fps"
+              min="10"
+              max="60"
+              step="5"
+              value={settings.frame_skipper.target_fps}
+              onChange={(e) =>
+                handleInputChange(
+                  "frame_skipper",
+                  null,
+                  "target_fps",
+                  parseInt(e.target.value)
+                )
+              }
             />
           </div>
 
           <div className="parameter-control">
-            <label htmlFor="maxAge">Track Max Age:</label>
+            <label htmlFor="skipRate">Skip Rate</label>
             <input
-              type="number"
-              id="maxAge"
-              name="maxAge"
-              min="1"
-              max="50"
-              step="1"
-              value={settings.maxAge}
-              onChange={handleInputChange}
+              type="text"
+              id="skipRate"
+              name="skip_rate"
+              value={settings.frame_skipper.skip_rate}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (
+                  value === "auto" ||
+                  value === "" ||
+                  (!isNaN(parseInt(value)) &&
+                    parseInt(value) >= 1 &&
+                    parseInt(value) <= 10)
+                ) {
+                  handleInputChange("frame_skipper", null, "skip_rate", value);
+                }
+              }}
+              onBlur={(e) => {
+                const value = e.target.value;
+                if (
+                  value !== "auto" &&
+                  (value === "" ||
+                    isNaN(parseInt(value)) ||
+                    parseInt(value) < 1 ||
+                    parseInt(value) > 10)
+                ) {
+                  handleInputChange("frame_skipper", null, "skip_rate", "auto");
+                }
+              }}
+              className="text-input"
             />
+            <small
+              style={{ color: "#a0a0a0", marginTop: "4px", fontSize: "0.8rem" }}
+            >
+              Enter "auto" or a number from 1-10
+            </small>
           </div>
         </section>
 
@@ -157,65 +417,78 @@ export default function EditPanel() {
               <input
                 type="checkbox"
                 id="speedEstimationEnabled"
-                name="speedEstimationEnabled"
-                checked={settings.speedEstimationEnabled}
-                onChange={handleInputChange}
+                name="enabled"
+                checked={settings.speed_estimation.enabled}
+                onChange={(e) =>
+                  handleInputChange(
+                    "speed_estimation",
+                    null,
+                    "enabled",
+                    e.target.checked
+                  )
+                }
               />
               <label className="toggle-label" htmlFor="speedEstimationEnabled">
-                {settings.speedEstimationEnabled ? "On" : "Off"}
+                {settings.speed_estimation.enabled ? "On" : "Off"}
               </label>
             </div>
           </div>
 
           <div
             className={`section-content ${
-              !settings.speedEstimationEnabled ? "disabled" : ""
+              !settings.speed_estimation.enabled ? "disabled" : ""
             }`}
           >
-            <div className="parameter-control">
-              <label htmlFor="speedLimit">Speed Limit (km/h):</label>
-              <input
-                type="number"
-                id="speedLimit"
-                name="speedLimit"
-                min="5"
-                max="200"
-                step="5"
-                value={settings.speedLimit}
-                onChange={handleInputChange}
-                disabled={!settings.speedEstimationEnabled}
-              />
-            </div>
-
             <div className="parameter-control">
               <label htmlFor="overspeedBuffer">Overspeed Buffer (km/h):</label>
               <input
                 type="number"
                 id="overspeedBuffer"
-                name="overspeedBuffer"
+                name="over_speed_buffer"
                 min="0"
                 max="20"
                 step="1"
-                value={settings.overspeedBuffer}
-                onChange={handleInputChange}
-                disabled={!settings.speedEstimationEnabled}
+                value={settings.speed_estimation.over_speed_buffer}
+                onChange={(e) =>
+                  handleInputChange(
+                    "speed_estimation",
+                    null,
+                    "over_speed_buffer",
+                    parseInt(e.target.value)
+                  )
+                }
+                disabled={!settings.speed_estimation.enabled}
               />
             </div>
 
-            <div className="parameter-control">
-              <label htmlFor="maxHistorySeconds">Max History (seconds):</label>
-              <input
-                type="number"
-                id="maxHistorySeconds"
-                name="maxHistorySeconds"
-                min="1"
-                max="10"
-                step="0.5"
-                value={settings.maxHistorySeconds}
-                onChange={handleInputChange}
-                disabled={!settings.speedEstimationEnabled}
-              />
-            </div>
+            {/* Dynamic Road Speed Settings */}
+            {Object.entries(settings.speed_estimation.roads).map(
+              ([roadId, roadData]) => (
+                <RoadSpeedSettings
+                  key={roadId}
+                  roadId={roadId}
+                  roadData={roadData}
+                  enabled={settings.speed_estimation.enabled}
+                  onSpeedChange={(path, value) => {
+                    const newSettings = { ...settings };
+                    setNestedValue(
+                      newSettings.speed_estimation.roads,
+                      path,
+                      value
+                    );
+                    setSettings(newSettings);
+                    // Send to backend
+                    fetch("http://localhost:8000/api/parameters", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                      },
+                      body: JSON.stringify(newSettings),
+                    });
+                  }}
+                />
+              )
+            )}
           </div>
         </section>
 
@@ -227,65 +500,58 @@ export default function EditPanel() {
               <input
                 type="checkbox"
                 id="redLightDetectionEnabled"
-                name="redLightDetectionEnabled"
-                checked={settings.redLightDetectionEnabled}
-                onChange={handleInputChange}
+                name="enabled"
+                checked={settings.red_light_violation.enabled}
+                onChange={(e) =>
+                  handleInputChange(
+                    "red_light_violation",
+                    null,
+                    "enabled",
+                    e.target.checked
+                  )
+                }
               />
               <label
                 className="toggle-label"
                 htmlFor="redLightDetectionEnabled"
               >
-                {settings.redLightDetectionEnabled ? "On" : "Off"}
+                {settings.red_light_violation.enabled ? "On" : "Off"}
               </label>
-            </div>
-          </div>
-
-          <div
-            className={`section-content ${
-              !settings.redLightDetectionEnabled ? "disabled" : ""
-            }`}
-          >
-            <div className="parameter-control">
-              <label htmlFor="maxTrackRLV">Maximum Tracked Vehicles:</label>
-              <input
-                type="number"
-                id="maxTrackRLV"
-                name="maxTrackRLV"
-                min="10"
-                max="200"
-                step="10"
-                value={settings.maxTrackRLV}
-                onChange={handleInputChange}
-                disabled={!settings.redLightDetectionEnabled}
-              />
             </div>
           </div>
         </section>
 
-        {/* Wrong Lane Detection Settings */}
+        {/* Wrong Way Violation Settings */}
         <section className="section">
           <div className="section-header">
-            <h3 className="section-title">Wrong Lane Driving Detection</h3>
+            <h3 className="section-title">Wrong Way Violation Detection</h3>
             <div className="toggle-container">
               <input
                 type="checkbox"
-                id="wrongLaneDetectionEnabled"
-                name="wrongLaneDetectionEnabled"
-                checked={settings.wrongLaneDetectionEnabled}
-                onChange={handleInputChange}
+                id="wrongWayDetectionEnabled"
+                name="enabled"
+                checked={settings.wrong_way_violation.enabled}
+                onChange={(e) =>
+                  handleInputChange(
+                    "wrong_way_violation",
+                    null,
+                    "enabled",
+                    e.target.checked
+                  )
+                }
               />
               <label
                 className="toggle-label"
-                htmlFor="wrongLaneDetectionEnabled"
+                htmlFor="wrongWayDetectionEnabled"
               >
-                {settings.wrongLaneDetectionEnabled ? "On" : "Off"}
+                {settings.wrong_way_violation.enabled ? "On" : "Off"}
               </label>
             </div>
           </div>
 
           <div
             className={`section-content ${
-              !settings.wrongLaneDetectionEnabled ? "disabled" : ""
+              !settings.wrong_way_violation.enabled ? "disabled" : ""
             }`}
           >
             <div className="parameter-control">
@@ -293,13 +559,20 @@ export default function EditPanel() {
               <input
                 type="number"
                 id="angleThreshold"
-                name="angleThreshold"
+                name="angle_threshold"
                 min="0"
                 max="180"
                 step="5"
-                value={settings.angleThreshold}
-                onChange={handleInputChange}
-                disabled={!settings.wrongLaneDetectionEnabled}
+                value={settings.wrong_way_violation.angle_threshold}
+                onChange={(e) =>
+                  handleInputChange(
+                    "wrong_way_violation",
+                    null,
+                    "angle_threshold",
+                    parseInt(e.target.value)
+                  )
+                }
+                disabled={!settings.wrong_way_violation.enabled}
               />
             </div>
 
@@ -310,13 +583,20 @@ export default function EditPanel() {
               <input
                 type="number"
                 id="straightThreshold"
-                name="straightThreshold"
+                name="straight_threshold"
                 min="0"
                 max="90"
                 step="5"
-                value={settings.straightThreshold}
-                onChange={handleInputChange}
-                disabled={!settings.wrongLaneDetectionEnabled}
+                value={settings.wrong_way_violation.straight_threshold}
+                onChange={(e) =>
+                  handleInputChange(
+                    "wrong_way_violation",
+                    null,
+                    "straight_threshold",
+                    parseInt(e.target.value)
+                  )
+                }
+                disabled={!settings.wrong_way_violation.enabled}
               />
             </div>
 
@@ -325,13 +605,20 @@ export default function EditPanel() {
               <input
                 type="number"
                 id="dotThreshold"
-                name="dotThreshold"
+                name="dot_threshold"
                 min="-1"
                 max="1"
                 step="0.1"
-                value={settings.dotThreshold}
-                onChange={handleInputChange}
-                disabled={!settings.wrongLaneDetectionEnabled}
+                value={settings.wrong_way_violation.dot_threshold}
+                onChange={(e) =>
+                  handleInputChange(
+                    "wrong_way_violation",
+                    null,
+                    "dot_threshold",
+                    parseFloat(e.target.value)
+                  )
+                }
+                disabled={!settings.wrong_way_violation.enabled}
               />
             </div>
 
@@ -340,13 +627,20 @@ export default function EditPanel() {
               <input
                 type="number"
                 id="toleranceTime"
-                name="toleranceTime"
+                name="tolerance_time"
                 min="0"
                 max="10"
                 step="0.5"
-                value={settings.toleranceTime}
-                onChange={handleInputChange}
-                disabled={!settings.wrongLaneDetectionEnabled}
+                value={settings.wrong_way_violation.tolerance_time}
+                onChange={(e) =>
+                  handleInputChange(
+                    "wrong_way_violation",
+                    null,
+                    "tolerance_time",
+                    parseFloat(e.target.value)
+                  )
+                }
+                disabled={!settings.wrong_way_violation.enabled}
               />
             </div>
           </div>
