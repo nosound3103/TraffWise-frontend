@@ -12,7 +12,6 @@ export default function CameraCard({ camera, onRemove }) {
 
   return (
     <div className="camera-card">
-      {/* Remove button */}
       <button className="remove-btn" onClick={() => onRemove(camera.id)}>
         <X size={15} />
       </button>

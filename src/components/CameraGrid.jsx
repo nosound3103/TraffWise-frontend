@@ -11,10 +11,10 @@ export default function CameraGrid({ cameras, onAddCamera, onRemoveCamera }) {
       ))}
 
       {/* Add New Camera Card */}
-      <div className="camera-card add-camera" onClick={onAddCamera}>
+      {/* <div className="camera-card add-camera" onClick={onAddCamera}>
         <div className="add-icon">+</div>
         <p>Add New Camera</p>
-      </div>
+      </div> */}
     </div>
   );
 }

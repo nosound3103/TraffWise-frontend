@@ -13,8 +13,6 @@ export function DataProvider({ children }) {
     { id: 3, name: "Camera 3", location: "Location 3", status: "active" },
     { id: 4, name: "Camera 4", location: "Location 4", status: "active" },
     { id: 5, name: "Camera 5", location: "Location 5", status: "active" },
-    // { id: 6, name: "Camera 6", location: "Location 6", status: "active" },
-    // { id: 7, name: "Camera 7", location: "Location 7", status: "active" },
   ]);
 
   const [violations, setViolations] = useState([]);
@@ -76,14 +74,12 @@ export function DataProvider({ children }) {
       setIsLoading(false);
     }
   };
-  // Initial fetch
   useEffect(() => {
     fetchViolations();
 
-    // Set up polling to refresh violations every 10 seconds
     const intervalId = setInterval(fetchViolations, 10000);
 
-    return () => clearInterval(intervalId); // Clean up on unmount
+    return () => clearInterval(intervalId);
   }, []);
 
   return (

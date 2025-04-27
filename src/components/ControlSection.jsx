@@ -97,8 +97,6 @@ export default function ControlSection({ togglePanel, activePanel, cameraId }) {
   useEffect(() => {
     const fetchPauseState = async () => {
       try {
-        // Use POST with no body instead of GET since the backend
-        // doesn't have a dedicated GET endpoint for pause state
         const response = await fetch("http://localhost:8000/toggle_pause", {
           method: "POST",
           headers: {
@@ -230,7 +228,6 @@ export default function ControlSection({ togglePanel, activePanel, cameraId }) {
       setCaptureStatus("Captured!");
       console.log(`Frame captured successfully: ${data.filename}`);
 
-      // Clear status after 3 seconds
       setTimeout(() => {
         setCaptureStatus(null);
       }, 3000);

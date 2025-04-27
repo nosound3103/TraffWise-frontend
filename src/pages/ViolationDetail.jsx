@@ -28,7 +28,6 @@ export default function ViolationDetail() {
         console.error("Error fetching violation:", err);
         setError("Failed to load violation details");
 
-        // For demo purposes, try to find the violation in local storage
         const { violations } = JSON.parse(
           localStorage.getItem("trafficData") || "{}"
         );
