@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { FaArrowLeft, FaCheck, FaExclamationTriangle } from "react-icons/fa";
+import {
+  FaArrowLeft,
+  FaCheck,
+  FaExclamationTriangle,
+  FaInfoCircle,
+} from "react-icons/fa";
 import "./ViolationDetail.css";
 
 export default function ViolationDetail() {
@@ -47,9 +52,7 @@ export default function ViolationDetail() {
   }, [id]);
 
   const formatPlate = (plate) => {
-    if (!plate) return "Unknown";
-    const [label, trackingId] = plate.split("-");
-    return `${label.charAt(0).toUpperCase() + label.slice(1)} - ${trackingId}`;
+    return plate;
   };
 
   const getViolationIcon = (type) => {
@@ -123,26 +126,66 @@ export default function ViolationDetail() {
         </div>
 
         <div className="violation-detail-content">
-          <div className="violation-image-large">
-            <img
-              src={violation.evidence || "https://placehold.co/1400x800"}
-              alt={`Violation by ${violation.plate}`}
-            />
+          <div className="violation-main-content">
+            <div className="violation-image-large">
+              <img
+                src={violation.evidence || "https://placehold.co/1400x800"}
+                alt={`Violation by ${violation.plate}`}
+              />
+            </div>
+
+            <div className="license-plate-showcase">
+              <div className="license-plate-container">
+                <img
+                  src={
+                    violation.lp ||
+                    "https://placehold.co/400x150?text=No+Plate+Image"
+                  }
+                  alt={`License plate ${violation.plate}`}
+                  className="license-plate-image"
+                />
+              </div>
+              <div className="plate-info">
+                <span className="plate-title">License Plate</span>
+                <span className="plate-number">
+                  {formatPlate(violation.plate)}
+                </span>
+              </div>
+            </div>
           </div>
 
           <div className="violation-info">
             <div className="info-card">
-              <h2>Violation Details</h2>
+              <h2>
+                <FaInfoCircle /> Violation Details
+              </h2>
+
               <div className="info-row">
-                <span className="info-label">ID:</span>
-                <span className="info-value">{violation.id}</span>
-              </div>
-              <div className="info-row">
-                <span className="info-label">Vehicle:</span>
+                <span className="info-label">License Plate:</span>
                 <span className="info-value">
                   {formatPlate(violation.plate)}
                 </span>
               </div>
+
+              <div className="info-row">
+                <span className="info-label">Vehicle Type:</span>
+                <span className="info-value">
+                  {violation.vehicle || "Unknown"}
+                </span>
+              </div>
+
+              {/* <div className="info-row">
+                <span className="info-label">Owner:</span>
+                <span className="info-value">
+                  {violation.owner || "Not registered"}
+                </span>
+              </div> */}
+
+              <div className="info-row">
+                <span className="info-label">ID:</span>
+                <span className="info-value">{violation.id}</span>
+              </div>
+
               <div className="info-row">
                 <span className="info-label">Date:</span>
                 <span className="info-value">
@@ -153,10 +196,12 @@ export default function ViolationDetail() {
                   })}
                 </span>
               </div>
+
               <div className="info-row">
                 <span className="info-label">Location:</span>
                 <span className="info-value">{violation.location}</span>
               </div>
+
               {violation.speed && (
                 <div className="info-row">
                   <span className="info-label">Speed:</span>
@@ -165,12 +210,14 @@ export default function ViolationDetail() {
                   </span>
                 </div>
               )}
+
               {violation.signalTime && (
                 <div className="info-row">
                   <span className="info-label">Signal:</span>
                   <span className="info-value">{violation.signalTime}</span>
                 </div>
               )}
+
               {violation.laneDetails && (
                 <div className="info-row">
                   <span className="info-label">Lane Details:</span>
