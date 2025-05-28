@@ -5,6 +5,7 @@ import CameraMonitor from "./pages/CameraMonitor";
 import ViolationPage from "./pages/ViolationPage";
 import ViolationDetail from "./pages/ViolationDetail";
 import { DataProvider } from "./contexts/DataProvider";
+import TestingPage from "./pages/TestingPage";
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
           <Route path="/monitor/:cameraId" element={<CameraMonitor />} />
           <Route path="/violations" element={<ViolationPage />} />
           <Route path="/violations/:id" element={<ViolationDetail />} />
+          <Route path="/test" element={<TestingPage />} />
         </Routes>
       </Router>
     </DataProvider>

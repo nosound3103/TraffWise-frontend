@@ -9,9 +9,7 @@ export default function ViolationLog() {
   const navigate = useNavigate();
 
   const formatPlate = (plate) => {
-    if (!plate) return "Unknown";
-    const [label, trackingId] = plate.split("-");
-    return `${label.charAt(0).toUpperCase() + label.slice(1)} - ${trackingId}`;
+    return plate;
   };
 
   const getTypeClass = (type) => {
@@ -72,9 +70,22 @@ export default function ViolationLog() {
                   <h3 className={getTypeClass(violation.type)}>
                     {violation.type}
                   </h3>
-                  <p className="violation-plate">
-                    {formatPlate(violation.plate)}
-                  </p>
+
+                  <div className="violation-plate-container">
+                    <div className="license-plate-thumbnail">
+                      <img
+                        src={
+                          violation.lp ||
+                          "https://placehold.co/400x150?text=No+Plate"
+                        }
+                        alt={`License plate ${violation.plate}`}
+                      />
+                    </div>
+                    <p className="violation-plate">
+                      {formatPlate(violation.plate)}
+                    </p>
+                  </div>
+
                   <p className="violation-location">{violation.location}</p>
                   {violation.speed && (
                     <p className="violation-speed">{violation.speed}</p>

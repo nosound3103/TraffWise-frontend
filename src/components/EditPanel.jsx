@@ -36,6 +36,8 @@ const getDefaultSettings = () => ({
   },
 });
 
+const allCameraSettings = {};
+
 const RoadSpeedSettings = ({ roadId, roadData, enabled, onSpeedChange }) => {
   console.log(roadId, roadData, enabled, onSpeedChange);
   return (
@@ -100,13 +102,45 @@ export default function EditPanel({ cameraId }) {
   useEffect(() => {
     const fetchConfig = async () => {
       setIsLoading(true);
+
+      if (allCameraSettings[cameraId]) {
+        console.log(`Using cached settings for camera ${cameraId}`);
+        setSettings(allCameraSettings[cameraId]);
+
+        try {
+          const response = await fetch(
+            `http://localhost:8000/api/camera/${cameraId}/parameters`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                cameraId: cameraId,
+                settings: allCameraSettings[cameraId],
+              }),
+            }
+          );
+          if (!response.ok) {
+            console.warn("Failed to sync settings with backend");
+          }
+        } catch (error) {
+          console.error("Error syncing settings:", error);
+        }
+
+        setIsLoading(false);
+        return;
+      }
+
       const storedSettings = localStorage.getItem(
         `camera_${cameraId}_settings`
       );
+
       if (storedSettings) {
-        // Use stored settings if available
         const parsedSettings = JSON.parse(storedSettings);
         setSettings(parsedSettings);
+
+        allCameraSettings[cameraId] = parsedSettings;
 
         const response = await fetch(
           `http://localhost:8000/api/camera/${cameraId}/parameters`,
@@ -134,10 +168,12 @@ export default function EditPanel({ cameraId }) {
           const data = await response.json();
           if (data) {
             setSettings(data);
+
             localStorage.setItem(
               `camera_${cameraId}_settings`,
               JSON.stringify(data)
             );
+            allCameraSettings[cameraId] = data;
           }
 
           console.log("Fetched settings for camera:", cameraId, data);
@@ -145,10 +181,12 @@ export default function EditPanel({ cameraId }) {
           console.error("Error fetching config:", error);
           const defaultSettings = getDefaultSettings();
           setSettings(defaultSettings);
+
           localStorage.setItem(
             `camera_${cameraId}_settings`,
             JSON.stringify(defaultSettings)
           );
+          allCameraSettings[cameraId] = defaultSettings;
         } finally {
           setIsLoading(false);
         }
@@ -183,6 +221,7 @@ export default function EditPanel({ cameraId }) {
         `camera_${cameraId}_settings`,
         JSON.stringify(newSettings)
       );
+      allCameraSettings[cameraId] = newSettings;
 
       const response = await fetch(
         `http://localhost:8000/api/camera/${cameraId}/parameters`,
@@ -205,39 +244,43 @@ export default function EditPanel({ cameraId }) {
       const data = await response.json();
       if (data.config) {
         setSettings(data.config);
+
         localStorage.setItem(
           `camera_${cameraId}_settings`,
           JSON.stringify(data.config)
         );
+        allCameraSettings[cameraId] = data.config;
       }
     } catch (error) {
       console.error("Error updating settings:", error);
-      const storedSettings = localStorage.getItem(
-        `camera_${cameraId}_settings`
-      );
-      if (storedSettings) {
-        setSettings(JSON.parse(storedSettings));
+      // Try to recover from cached settings
+      if (allCameraSettings[cameraId]) {
+        setSettings(allCameraSettings[cameraId]);
+      } else {
+        const storedSettings = localStorage.getItem(
+          `camera_${cameraId}_settings`
+        );
+        if (storedSettings) {
+          setSettings(JSON.parse(storedSettings));
+        }
       }
     }
   };
 
   const handleReset = async () => {
     try {
-      // Reset to defaults
-      // setSettings(DEFAULT_SETTINGS);
-
       localStorage.removeItem(`camera_${cameraId}_settings`);
+      delete allCameraSettings[cameraId];
 
-      // Fetch default settings from backend
       const response = await fetch(
         `http://localhost:8000/api/camera/${cameraId}/config`
       );
       if (!response.ok) throw new Error("Failed to fetch config");
       const data = await response.json();
 
-      // Update state and localStorage
       setSettings(data);
       localStorage.setItem(`camera_${cameraId}_settings`, JSON.stringify(data));
+      allCameraSettings[cameraId] = data;
     } catch (error) {
       console.error("Error resetting settings:", error);
     }

@@ -15,6 +15,9 @@ export default function Navbar() {
       <button className="nav-button" onClick={() => navigate("/violations")}>
         Violations
       </button>
+      <button className="nav-button" onClick={() => navigate("/test")}>
+        Test
+      </button>
     </nav>
   );
 }
